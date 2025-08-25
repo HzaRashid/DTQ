@@ -1,0 +1,90 @@
+version: '3.8'
+
+services:
+  # RabbitMQ broker
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: dtq-rabbitmq
+    ports:
+      - "5672:5672"      # AMQP
+      - "15672:15672"    # Management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_VHOST: /
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Redis backend
+  redis:
+    image: redis:7-alpine
+    container_name: dtq-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # dtq Worker
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: dtq-worker
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - RMQ_URL=amqp://guest:guest@rabbitmq:5672/%2F
+      - REDIS_URL=redis://redis:6379/0
+      - dtq_EXCHANGE=dtq
+      - dtq_DEFAULT_QUEUE=default
+      - dtq_QUEUE=default
+      - dtq_PREFETCH=1
+      - dtq_LOGLEVEL=info
+      - dtq_USE_MOCK=false
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: python -m dtq worker -A example.tasks
+    restart: unless-stopped
+
+  # Optional: FastAPI web interface (if you want one)
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: dtq-web
+    ports:
+      - "8000:8000"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      - RMQ_URL=amqp://guest:guest@rabbitmq:5672/%2F
+      - REDIS_URL=redis://redis:6379/0
+      - dtq_EXCHANGE=dtq
+      - dtq_DEFAULT_QUEUE=default
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: uvicorn dtq.web:app --host 0.0.0.0 --port 8000 --reload
+    restart: unless-stopped
+
+volumes:
+  rabbitmq_data:
+  redis_data:
+

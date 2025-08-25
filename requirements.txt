@@ -1,0 +1,17 @@
+# pika
+pika
+
+# redis
+redis
+
+# fastapi
+fastapi
+
+# pydantic
+pydantic
+
+# uvicorn (for FastAPI server)
+uvicorn
+
+# Optional: for better Redis connection handling
+redis[hiredis]
