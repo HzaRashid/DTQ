@@ -2,7 +2,6 @@
 import pika
 from .interfaces import BrokerPublisher, BrokerConsumer
 
-# ... existing code ...
 
 class PikaPublisher:
     def __init__(self, rmq_url: str):
@@ -201,8 +200,6 @@ class PikaConsumer:
                 pass
         
         return messages
-
-# ... existing code ...
 
 
 # ---- Tiny adapter registry / factories ----
