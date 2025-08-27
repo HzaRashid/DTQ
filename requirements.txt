@@ -15,3 +15,11 @@ uvicorn
 
 # Optional: for better Redis connection handling
 redis[hiredis]
+
+# pytest
+pytest
+
+# mock
+mock
+
+# unittest.mock 

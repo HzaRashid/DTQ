@@ -1,6 +1,7 @@
 # adapters/redis_backend.py
-import json, redis
+import redis
 from .interfaces import ResultBackend
+
 
 class RedisBackend:
     def __init__(self, redis_url: str, decode_responses=True):
