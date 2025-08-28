@@ -14,7 +14,7 @@ This repo is for educational purposes to explore RabbitMQ, Redis, and distribute
 
 1. **Clone the repository**
    ```bash
-   git clone <your-repo-url>
+   git clone https://github.com/HzaRashid/DTQ.git
    cd DTQ
    ```
 
