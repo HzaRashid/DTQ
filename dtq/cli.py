@@ -34,6 +34,7 @@ def load_dtq_from_app_path(app_path: str):
         default_queue=os.getenv("DTQ_DEFAULT_QUEUE", "default"),
         broker_url=os.getenv("RMQ_URL", "amqp://guest:guest@localhost:5672/%2F"),
         backend_url=os.getenv("REDIS_URL", "redis://localhost:6379/0"),
+        broker_mgmt_url=os.getenv("BROKER_MGMT_URL", "http://guest:guest@localhost:15672"),
     )
 
     # If it's a package/module, try autodiscovery under it

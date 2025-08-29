@@ -162,12 +162,16 @@ class DTQ:
         )
         self._con.consume(queue=f"dtq.{queue}", on_message=on_message)
 
-    # ---- worker helper methods ----
     def _declare_queue(self, queue: str):
         """Declare a queue for worker consumption"""
         self._pub.declare_exchange_and_queue(
             self.exchange, f"dtq.{queue}", routing_key=queue
         )
+        
+        # Setup retry policies for the queue
+        from adapters.policy import RMQPolicy
+        policy_manager = RMQPolicy()
+        policy_manager.setup_retry_infrastructure(f"dtq.{queue}")
         
     def retry_from_dlq(self, job_id: str, queue: str | None = None) -> dict:
         """

@@ -54,6 +54,7 @@ services:
       - dtq_PREFETCH=1
       - dtq_LOGLEVEL=info
       - dtq_USE_MOCK=false
+      - BROKER_MGMT_URL=http://guest:guest@rabbitmq:15672
     volumes:
       - .:/app
     working_dir: /app

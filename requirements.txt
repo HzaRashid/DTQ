@@ -22,4 +22,5 @@ pytest
 # mock
 mock
 
-# unittest.mock 
+# requests
+requests

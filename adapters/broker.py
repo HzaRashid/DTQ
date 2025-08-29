@@ -14,31 +14,15 @@ class PikaPublisher:
         self._ch.queue_bind(queue=queue, exchange=exchange, routing_key=routing_key)
 
     def declare_retry_infrastructure(self, exchange: str, queue: str):
-        """Declare retry and dead letter queues for a given queue"""
-        retry_queue = f"{queue}.retry"
-        dlq = f"{queue}.dlq"
+        """Declare only basic exchange and queue - policies handle retry/DLQ config"""
+        # Only declare the main exchange and queue, policies handle retry/DLQ config
+        self._ch.exchange_declare(exchange=exchange, exchange_type="direct", durable=True)
+        self._ch.queue_declare(queue=queue, durable=True)
+        self._ch.queue_bind(queue=queue, exchange=exchange, routing_key=queue.split('.', 1)[-1])
+        
+        # Declare DLX (policies will handle the rest)
         dlx = f"{exchange}.dlx"
-        
-        # Dead letter exchange for failed messages
         self._ch.exchange_declare(dlx, "direct", durable=True)
-        
-        # Bind original queue to dead letter exchange for retry->original routing
-        self._ch.queue_bind(queue=queue, exchange=dlx, routing_key=queue)
-        
-        # Retry queue with message TTL (1 minute delay)
-        self._ch.queue_declare(retry_queue, durable=True, arguments={
-            'x-message-ttl': 60000,  # 1 minute TTL before re-delivery
-            'x-dead-letter-exchange': dlx,  # Route to DLX after TTL
-            'x-dead-letter-routing-key': queue  # Back to original queue
-        })
-        
-        # Dead letter queue with longer TTL (7 days for manual inspection)
-        self._ch.queue_declare(dlq, durable=True, arguments={
-            'x-message-ttl': 604800000  # 7 days TTL
-        })
-        
-        # Bind DLQ to DLX for exhausted retries
-        self._ch.queue_bind(queue=dlq, exchange=dlx, routing_key=f"{queue}.exhausted")
 
     def publish(self, exchange: str, routing_key: str, body: bytes, headers=None):
         props = pika.BasicProperties(content_type='application/json', delivery_mode=2, headers=headers or {})
@@ -49,9 +33,6 @@ class PikaPublisher:
         retry_queue = f"{queue}.retry"
         dlx = f"{exchange}.dlx"
         
-        # Ensure retry infrastructure exists
-        self.declare_retry_infrastructure(exchange, queue)
-        
         props = pika.BasicProperties(content_type='application/json', delivery_mode=2, headers=headers or {})
         self._ch.basic_publish(exchange=dlx, routing_key=retry_queue, body=body, properties=props)
 
@@ -60,11 +41,8 @@ class PikaPublisher:
         dlq = f"{queue}.dlq"
         dlx = f"{exchange}.dlx"
         
-        # Ensure retry infrastructure exists
-        self.declare_retry_infrastructure(exchange, queue)
-        
         props = pika.BasicProperties(content_type='application/json', delivery_mode=2, headers=headers or {})
-        self._ch.basic_publish(exchange=dlx, routing_key=f"{queue}.exhausted", body=body, properties=props)
+        self._ch.basic_publish(exchange=dlx, routing_key=f"{queue}.dlq", body=body, properties=props)
 
 
 class PikaConsumer:

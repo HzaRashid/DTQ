@@ -26,9 +26,15 @@ class Worker:
         self._ch = self._conn.channel()
         self._ch.basic_qos(prefetch_count=prefetch)
 
-        # Ensure the queue and retry infrastructure exists
-        dtq._declare_queue(queue)
-        dtq._pub.declare_retry_infrastructure(dtq.exchange, f"dtq.{queue}")
+        # Declare the main queue first (like app.py does)
+        self.dtq._pub.declare_exchange_and_queue(
+            self.dtq.exchange, f"dtq.{queue}", routing_key=queue
+        )
+        
+        # Then setup retry policies for the queue
+        from adapters.policy import RMQPolicy
+        policy_manager = RMQPolicy()
+        policy_manager.setup_retry_infrastructure(f"dtq.{queue}")
 
         self._ch.basic_consume(
             queue=f"dtq.{queue}",
